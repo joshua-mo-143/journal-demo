@@ -2,7 +2,7 @@
 {% block content %}
 <a href="/entries/create">Create a post</a>
 		<h1> Posts </h1>
-<div>
+<div id="posts">
 			{% for post in posts %}
 			<p> {{post.title}} - {{post.date}} </p> 
 			{% endfor %}
