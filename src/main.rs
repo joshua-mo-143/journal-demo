@@ -1,7 +1,8 @@
-use axum::{routing::{get, post}, Router, Json, response::IntoResponse as AxumResponse, http::StatusCode, response::Response, extract::{Path, State, Form}};
+use axum::{routing::{get, post}, Router, Json, response::IntoResponse as AxumResponse, http::StatusCode, response::{Response, Redirect}, extract::{Path, State, Form}};
 use serde::{Serialize, Deserialize};
 use sqlx::PgPool;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, NaiveDate};
+use sqlx::Executor;
 use askama::Template;
 use askama_axum::IntoResponse;
 
@@ -14,7 +15,7 @@ pub struct AppState {
 struct Post {
     title: String,
     body: String,
-    date: DateTime<Utc> 
+    date: NaiveDate
 }
 
 #[derive(sqlx::FromRow, Deserialize)]
@@ -31,9 +32,7 @@ struct IndexTemplate {
 
 #[derive(Template)]
 #[template(path = "post_form.html")]
-struct PostTemplate {
-    post: Post
-}
+struct PostFormTemplate;
 
 #[derive(Template)]
 #[template(path = "post.html")]
@@ -45,6 +44,8 @@ struct PostTemplate {
 async fn main(
     #[shuttle_shared_db::Postgres] db: PgPool,
     ) -> shuttle_axum::ShuttleAxum {
+    db.execute(include_str!("../migrations.sql")).await.unwrap();
+
     let state = AppState { db };
     let router = Router::new()
         .route("/", get(get_entries))
@@ -89,16 +90,20 @@ async fn get_entry_by_id(
     PostTemplate { post }
 } 
 
-async fn post_entry(
+async fn create_entry(
     State(state): State<AppState>,
     Form(post): Form<PostSubmit>
-    ) -> StatusCode {
-    let query = sqlx::query("INSERT INTO entries (title, body) VALUES ($1, $2)")
+    ) -> Redirect {
+    sqlx::query("INSERT INTO entries (title, body) VALUES ($1, $2)")
         .bind(post.title)
         .bind(post.body)
         .execute(&state.db)
         .await
         .unwrap();
 
-    StatusCode::CREATED 
+    Redirect::to("/")
 } 
+
+async fn entry_form() -> impl IntoResponse {
+    PostFormTemplate
+}

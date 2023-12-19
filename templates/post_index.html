@@ -1,8 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<a href="/entries/create">Create a post</a>
+		<h1> Posts </h1>
 <div>
-		<form action="/entries">
-				<input name="title"></input>
-				<textarea name="body" rows=30 columns=10></textarea>
-
-		<button type="submit">Submit</button>
-		</form>
+			{% for post in posts %}
+			<p> {{post.title}} - {{post.date}} </p> 
+			{% endfor %}
 </div>
+{% endblock content %}
